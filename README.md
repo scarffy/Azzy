@@ -2,11 +2,17 @@
  Davinchi based code with what I wanted
 
  ### ChangeLog
+  v1.2 <br>
+ Add SetLoadingImage Sprite type
+
  v1.1 <br>
  Add SetLoadingError Sprite type
 
  v1.0 <br>
  Original repository from original author
+
+ ### TO DO
+ SetLoadingImage to take Sprite into Renderer (Need to test)
 
 Original Repository https://github.com/shamsdev/davinci
 Davinci

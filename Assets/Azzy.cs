@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Azzy - Based on a powerful, esay-to-use image downloading and caching library for Unity in Run-Time with blackjack and Davinci
-/// v 1.1
+/// v 1.2
 /// Developed by ShamsDEV.com
 /// copyright (c) ShamsDEV.com All Rights Reserved.
 /// Licensed under the MIT License.
@@ -223,7 +223,7 @@ public class Azzy : MonoBehaviour
     /// <returns></returns>
     public Azzy setLoadingPlaceholder(Sprite loadingPlaceholder)
     {
-        this.loadingPlaceholder = null;
+        this.loadingPlaceholderSprite = loadingPlaceholder;
 
         if (enableLog)
             Debug.Log("[Azzy] Loading placeholder has been set.");
@@ -308,6 +308,9 @@ public class Azzy : MonoBehaviour
 
         if (loadingPlaceholder != null)
             SetLoadingImage();
+
+        else if (loadingPlaceholderSprite != null)
+            SetLoadingImage(loadingPlaceholderSprite);
 
         if (onStartAction != null)
             onStartAction.Invoke();
@@ -407,7 +410,21 @@ public class Azzy : MonoBehaviour
         {
             case RendererType.renderer:
                 Renderer renderer = targetObj.GetComponent<Renderer>();
-                renderer.material.mainTexture = loadingPlaceholder;
+                if (sprites == null)
+                {
+                    // TODO
+                    var texture2d = new Texture2D((int)sprites.rect.width, (int)sprites.rect.height);
+                    var pixels = sprites.texture.GetPixels(
+                        (int)sprites.textureRect.x,
+                        (int)sprites.textureRect.y,
+                        (int)sprites.textureRect.width,
+                        (int)sprites.textureRect.height
+                        );
+                    texture2d.SetPixels(pixels);
+                    texture2d.Apply();
+                }
+                else
+                    renderer.material.mainTexture = loadingPlaceholder;
                 break;
 
             case RendererType.uiImage:
@@ -420,9 +437,7 @@ public class Azzy : MonoBehaviour
                     image.sprite = sprite;
                 }
                 else
-                {
                     image.sprite = sprites;
-                }
                 break;
         }
     }

@@ -36,6 +36,7 @@ public class Azzy : MonoBehaviour
     private string url = null;
 
     private Texture2D loadingPlaceholder, errorPlaceholder;
+    private Sprite loadingPlaceholderSprite, errorPlaceholderSprite;
 
     private UnityAction onStartAction,
         onDownloadedAction,
@@ -216,6 +217,21 @@ public class Azzy : MonoBehaviour
     }
 
     /// <summary>
+    /// Set the sprite of image when Azzy is downloading and loading image
+    /// </summary>
+    /// <param name="loadingPlaceholder">loading texture</param>
+    /// <returns></returns>
+    public Azzy setLoadingPlaceholder(Sprite loadingPlaceholder)
+    {
+        this.loadingPlaceholder = null;
+
+        if (enableLog)
+            Debug.Log("[Azzy] Loading placeholder has been set.");
+
+        return this;
+    }
+
+    /// <summary>
     /// Set image sprite when some error occurred during downloading or loading image
     /// </summary>
     /// <param name="errorPlaceholder">error texture</param>
@@ -223,6 +239,21 @@ public class Azzy : MonoBehaviour
     public Azzy setErrorPlaceholder(Texture2D errorPlaceholder)
     {
         this.errorPlaceholder = errorPlaceholder;
+
+        if (enableLog)
+            Debug.Log("[Azzy] Error placeholder has been set.");
+
+        return this;
+    }
+
+    /// <summary>
+    /// Set image sprite when some error occurred during downloading or loading image
+    /// </summary>
+    /// <param name="errorPlaceholder">error texture</param>
+    /// <returns></returns>
+    public Azzy setErrorPlaceholder(Sprite errorPlaceholder)
+    {
+        this.errorPlaceholderSprite = errorPlaceholder;
 
         if (enableLog)
             Debug.Log("[Azzy] Error placeholder has been set.");
@@ -367,10 +398,10 @@ public class Azzy : MonoBehaviour
         }
 
         StopAllCoroutines();
-        StartCoroutine(ImageLoader());
+        StartCoroutine(ImageLoader(null as Texture2D));
     }
 
-    private void SetLoadingImage()
+    private void SetLoadingImage(Sprite sprites = null)
     {
         switch (rendererType)
         {
@@ -381,14 +412,19 @@ public class Azzy : MonoBehaviour
 
             case RendererType.uiImage:
                 Image image = targetObj.GetComponent<Image>();
-                Sprite sprite = Sprite.Create(loadingPlaceholder,
-                     new Rect(0, 0, loadingPlaceholder.width, loadingPlaceholder.height),
-                     new Vector2(0.5f, 0.5f));
-                image.sprite = sprite;
-
+                if (sprites == null)
+                {
+                    Sprite sprite = Sprite.Create(loadingPlaceholder,
+                         new Rect(0, 0, loadingPlaceholder.width, loadingPlaceholder.height),
+                         new Vector2(0.5f, 0.5f));
+                    image.sprite = sprite;
+                }
+                else
+                {
+                    image.sprite = sprites;
+                }
                 break;
         }
-
     }
 
     private IEnumerator ImageLoader(Texture2D texture = null)
@@ -482,6 +518,105 @@ public class Azzy : MonoBehaviour
         finish();
     }
 
+    private IEnumerator ImageLoader(Sprite texture = null)
+    {
+        if (enableLog)
+            Debug.Log("[Azzy] Start loading image.");
+
+        if (texture == null)
+        {
+            byte[] fileData;
+            fileData = File.ReadAllBytes(filePath + uniqueHash);
+            // Update this
+            //texture = new Texture2D(2, 2);
+            //ImageConversion.LoadImage(texture, fileData);
+            // Update this
+            //texture.LoadImage(fileData); //..this will auto-resize the texture dimensions.
+
+            // Trying to convert byte to Sprite
+            Texture2D texture2d = new Texture2D(10, 10);
+            texture2d.LoadImage(fileData);
+            texture = Sprite.Create(texture2d,
+                new Rect(0, 0, texture2d.width, texture2d.height), new Vector2(0.5f, 0.5f));
+        }
+
+        Color color;
+
+        if (targetObj != null)
+            switch (rendererType)
+            {
+                case RendererType.renderer:
+                    Renderer renderer = targetObj.GetComponent<Renderer>();
+
+                    if (renderer == null || renderer.material == null)
+                        break;
+
+                    // Update this
+                   // renderer.material.mainTexture = texture;
+                    float maxAlpha;
+
+                    if (fadeTime > 0 && renderer.material.HasProperty("_Color"))
+                    {
+                        color = renderer.material.color;
+                        maxAlpha = color.a;
+
+                        color.a = 0;
+
+                        renderer.material.color = color;
+                        float time = Time.time;
+                        while (color.a < maxAlpha)
+                        {
+                            color.a = Mathf.Lerp(0, maxAlpha, (Time.time - time) / fadeTime);
+
+                            if (renderer != null)
+                                renderer.material.color = color;
+
+                            yield return null;
+                        }
+                    }
+
+                    break;
+
+                case RendererType.uiImage:
+                    Image image = targetObj.GetComponent<Image>();
+
+                    if (image == null)
+                        break;
+
+                    Sprite sprite = texture;
+
+                    image.sprite = sprite;
+                    color = image.color;
+                    maxAlpha = color.a;
+
+                    if (fadeTime > 0)
+                    {
+                        color.a = 0;
+                        image.color = color;
+
+                        float time = Time.time;
+                        while (color.a < maxAlpha)
+                        {
+                            color.a = Mathf.Lerp(0, maxAlpha, (Time.time - time) / fadeTime);
+
+                            if (image != null)
+                                image.color = color;
+                            yield return null;
+                        }
+                    }
+                    break;
+            }
+
+        if (OnLoadedAction != null)
+            OnLoadedAction.Invoke();
+
+        if (enableLog)
+            Debug.Log("[Azzy] Image has been loaded.");
+
+        success = true;
+        finish();
+    }
+
     public static string CreateMD5(string input)
     {
         // Use input string to calculate MD5 hash
@@ -512,6 +647,8 @@ public class Azzy : MonoBehaviour
 
         if (errorPlaceholder != null)
             StartCoroutine(ImageLoader(errorPlaceholder));
+        if (errorPlaceholderSprite != null)
+            StartCoroutine(ImageLoader(errorPlaceholderSprite));
         else finish();
     }
 

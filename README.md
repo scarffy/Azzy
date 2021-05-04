@@ -1,6 +1,13 @@
 # Azzy
  Davinchi based code with what I wanted
 
+ ### ChangeLog
+ v1.1 <br>
+ Add SetLoadingError Sprite type
+
+ v1.0 <br>
+ Original repository from original author
+
 Original Repository https://github.com/shamsdev/davinci
 Davinci
 ---

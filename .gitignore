@@ -9,6 +9,8 @@ ProjectSettings/
 UnityPackageManager/
 Packages/
 UserSettings/
+Assets/TextMesh Pro/
+Assets/TextMesh Pro.meta
 
 # Visual Studio cache directory
 .vs/

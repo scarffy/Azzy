@@ -5,11 +5,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using System.Collections;
+using UnityEngine.Networking;
 using System.Collections.Generic;
 
 /// <summary>
 /// Azzy - Based on a powerful, esay-to-use image downloading and caching library for Unity in Run-Time with blackjack and Davinci
-/// v 1.0
+/// v 1.1
 /// Developed by ShamsDEV.com
 /// copyright (c) ShamsDEV.com All Rights Reserved.
 /// Licensed under the MIT License.
@@ -316,36 +317,31 @@ public class Azzy : MonoBehaviour
         }
     }
 
-    private IEnumerator Downloader()
+    IEnumerator Downloader()
     {
-        if (enableLog)
+        if(enableLog)
             Debug.Log("[Azzy] Download started.");
 
-        var www = new WWW(url);
+        UnityWebRequest wr = UnityWebRequestTexture.GetTexture(url);
+        yield return wr.SendWebRequest();
 
-        while (!www.isDone)
+        if (wr.isHttpError || wr.isNetworkError)
         {
-            if (www.error != null)
-            {
-                error("Error while downloading the image : " + www.error);
-                yield break;
-            }
-
-            progress = Mathf.FloorToInt(www.progress * 100);
-            if (onDownloadProgressChange != null)
-                onDownloadProgressChange.Invoke(progress);
-
-            if (enableLog)
-                Debug.Log("[Azzy] Downloading progress : " + progress + "%");
-
-            yield return null;
+            error("Error while downloading the image : " + wr.error);
+            yield break;
         }
 
-        if (www.error == null)
-            File.WriteAllBytes(filePath + uniqueHash, www.bytes);
+        progress = Mathf.FloorToInt(wr.downloadProgress * 100);
+        if (onDownloadProgressChange != null)
+            onDownloadProgressChange.Invoke(progress);
 
-        www.Dispose();
-        www = null;
+        if (enableLog)
+            Debug.Log("[Azzy] Downloading progress : " + progress + "%");
+
+        if (!wr.isHttpError || !wr.isNetworkError)
+            File.WriteAllBytes(filePath + uniqueHash, wr.downloadHandler.data);  
+
+        yield return null;
 
         if (onDownloadedAction != null)
             onDownloadedAction.Invoke();

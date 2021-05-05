@@ -12,7 +12,7 @@
  Original repository from original author
 
  ### TO DO
- SetLoadingImage to take Sprite into Renderer (Need to test)
+ Image to accept raw image type
 
 Original Repository https://github.com/shamsdev/davinci
 Davinci

@@ -10,7 +10,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Azzy - Based on a powerful, esay-to-use image downloading and caching library for Unity in Run-Time with blackjack and Davinci
-/// v 1.2
+/// v 1.2 
+/// TODO - v 1.3 - rawImage
 /// Developed by ShamsDEV.com
 /// copyright (c) ShamsDEV.com All Rights Reserved.
 /// Licensed under the MIT License.
@@ -20,23 +21,24 @@ public class Azzy : MonoBehaviour
 {
     private static bool ENABLE_GLOBAL_LOGS = true;
 
-    private bool enableLog = false;
-    private float fadeTime = 1;
-    private bool cached = true;
+    public bool enableLog = false;
+    public float fadeTime = 1;
+    public bool cached = true;
 
-    private enum RendererType
+    public enum RendererType
     {
         none,
         uiImage,
-        renderer
+        renderer,
+        rawImage
     }
 
-    private RendererType rendererType = RendererType.none;
-    private GameObject targetObj;
-    private string url = null;
+    public RendererType rendererType = RendererType.none;
+    public GameObject targetObj;
+    public string url = null;
 
-    private Texture2D loadingPlaceholder, errorPlaceholder;
-    private Sprite loadingPlaceholderSprite, errorPlaceholderSprite;
+    public Texture2D loadingPlaceholder, errorPlaceholder;
+    public Sprite loadingPlaceholderSprite, errorPlaceholderSprite;
 
     private UnityAction onStartAction,
         onDownloadedAction,
@@ -49,10 +51,10 @@ public class Azzy : MonoBehaviour
     private static Dictionary<string, Azzy> underProcessAzzyes
         = new Dictionary<string, Azzy>();
 
-    private string uniqueHash;
-    private int progress;
+    public string uniqueHash;
+    public int progress;
 
-    private bool success = false;
+    public bool success = false;
 
     static string filePath = Application.persistentDataPath + "/" +
              "Azzy" + "/";
@@ -121,6 +123,21 @@ public class Azzy : MonoBehaviour
 
         rendererType = RendererType.renderer;
         this.targetObj = renderer.gameObject;
+        return this;
+    }
+
+    /// <summary>
+    /// Set target Raw Image component.
+    /// </summary>
+    /// <param name="renderer">target renderer component</param>
+    /// <returns></returns>
+    public Azzy into(RawImage rawImage)
+    {
+        if (enableLog)
+            Debug.Log("[Azzy] Target as Renderer set : " + rawImage);
+
+        rendererType = RendererType.rawImage;
+        this.targetObj = rawImage.gameObject;
         return this;
     }
 
@@ -359,7 +376,7 @@ public class Azzy : MonoBehaviour
         UnityWebRequest wr = UnityWebRequestTexture.GetTexture(url);
         yield return wr.SendWebRequest();
 
-        if (wr.isHttpError || wr.isNetworkError)
+        if (wr.error != null)
         {
             error("Error while downloading the image : " + wr.error);
             yield break;
@@ -372,7 +389,7 @@ public class Azzy : MonoBehaviour
         if (enableLog)
             Debug.Log("[Azzy] Downloading progress : " + progress + "%");
 
-        if (!wr.isHttpError || !wr.isNetworkError)
+        if (wr.error == null)
             File.WriteAllBytes(filePath + uniqueHash, wr.downloadHandler.data);  
 
         yield return null;
@@ -410,9 +427,8 @@ public class Azzy : MonoBehaviour
         {
             case RendererType.renderer:
                 Renderer renderer = targetObj.GetComponent<Renderer>();
-                if (sprites == null)
+                if (sprites != null)
                 {
-                    // TODO
                     var texture2d = new Texture2D((int)sprites.rect.width, (int)sprites.rect.height);
                     var pixels = sprites.texture.GetPixels(
                         (int)sprites.textureRect.x,
@@ -438,6 +454,23 @@ public class Azzy : MonoBehaviour
                 }
                 else
                     image.sprite = sprites;
+                break;
+            case RendererType.rawImage:
+                RawImage rawImage = targetObj.GetComponent<RawImage>();
+                if (sprites != null)
+                {
+                    var texture2d = new Texture2D((int)sprites.rect.width, (int)sprites.rect.height);
+                    var pixels = sprites.texture.GetPixels(
+                        (int)sprites.textureRect.x,
+                        (int)sprites.textureRect.y,
+                        (int)sprites.textureRect.width,
+                        (int)sprites.textureRect.height
+                        );
+                    texture2d.SetPixels(pixels);
+                    texture2d.Apply();
+                }
+                else
+                    rawImage.texture = loadingPlaceholder;
                 break;
         }
     }
@@ -489,7 +522,6 @@ public class Azzy : MonoBehaviour
                             yield return null;
                         }
                     }
-
                     break;
 
                 case RendererType.uiImage:
@@ -521,6 +553,33 @@ public class Azzy : MonoBehaviour
                         }
                     }
                     break;
+                case RendererType.rawImage:
+                    RawImage rawImage = targetObj.GetComponent<RawImage>();
+
+                    if (rawImage == null)
+                        break;
+
+                    rawImage.texture = texture;
+
+                    color = rawImage.color;
+                    maxAlpha = color.a;
+
+                    if (fadeTime > 0)
+                    {
+                        color.a = 0;
+                        rawImage.color = color;
+
+                        float time = Time.time;
+                        while (color.a < maxAlpha)
+                        {
+                            color.a = Mathf.Lerp(0, maxAlpha, (Time.time - time) / fadeTime);
+
+                            if (rawImage != null)
+                                rawImage.color = color;
+                            yield return null;
+                        }
+                    }
+                    break;
             }
 
         if (OnLoadedAction != null)
@@ -542,13 +601,7 @@ public class Azzy : MonoBehaviour
         {
             byte[] fileData;
             fileData = File.ReadAllBytes(filePath + uniqueHash);
-            // Update this
-            //texture = new Texture2D(2, 2);
-            //ImageConversion.LoadImage(texture, fileData);
-            // Update this
-            //texture.LoadImage(fileData); //..this will auto-resize the texture dimensions.
-
-            // Trying to convert byte to Sprite
+ 
             Texture2D texture2d = new Texture2D(10, 10);
             texture2d.LoadImage(fileData);
             texture = Sprite.Create(texture2d,
@@ -566,8 +619,19 @@ public class Azzy : MonoBehaviour
                     if (renderer == null || renderer.material == null)
                         break;
 
+
                     // Update this
-                   // renderer.material.mainTexture = texture;
+                    //var texture2d = new Texture2D((int)texture.rect.width, (int)texture.rect.height);
+                    //var pixels = texture.texture.GetPixels(
+                    //    (int)texture.textureRect.x,
+                    //    (int)texture.textureRect.y,
+                    //    (int)texture.textureRect.width,
+                    //    (int)texture.textureRect.height
+                    //    );
+                    //texture2d.SetPixels(pixels);
+                    //texture2d.Apply();
+                    //renderer.material.mainTexture = texture2d;
+
                     float maxAlpha;
 
                     if (fadeTime > 0 && renderer.material.HasProperty("_Color"))
@@ -589,7 +653,6 @@ public class Azzy : MonoBehaviour
                             yield return null;
                         }
                     }
-
                     break;
 
                 case RendererType.uiImage:
@@ -616,6 +679,43 @@ public class Azzy : MonoBehaviour
 
                             if (image != null)
                                 image.color = color;
+                            yield return null;
+                        }
+                    }
+                    break;
+                case RendererType.rawImage:
+                    RawImage rawImage = targetObj.GetComponent<RawImage>();
+
+                    if (rawImage == null)
+                        break;
+
+                    var texture2d = new Texture2D((int)texture.rect.width, (int)texture.rect.height);
+                    var pixels = texture.texture.GetPixels(
+                        (int)texture.textureRect.x,
+                        (int)texture.textureRect.y,
+                        (int)texture.textureRect.width,
+                        (int)texture.textureRect.height
+                        );
+                    texture2d.SetPixels(pixels);
+                    texture2d.Apply();
+
+                    rawImage.texture = texture2d;
+
+                    color = rawImage.color;
+                    maxAlpha = color.a;
+
+                    if (fadeTime > 0)
+                    {
+                        color.a = 0;
+                        rawImage.color = color;
+
+                        float time = Time.time;
+                        while (color.a < maxAlpha)
+                        {
+                            color.a = Mathf.Lerp(0, maxAlpha, (Time.time - time) / fadeTime);
+
+                            if (rawImage != null)
+                                rawImage.color = color;
                             yield return null;
                         }
                     }
@@ -693,7 +793,7 @@ public class Azzy : MonoBehaviour
 
     private void destroyer()
     {
-        Destroy(gameObject);
+       // Destroy(gameObject);
     }
 
 

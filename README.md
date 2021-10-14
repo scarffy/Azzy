@@ -2,6 +2,9 @@
  Davinchi based code with what I wanted. <br> Which is UnityWebRequest and also RawImage. <br> My code is not the best.. but hey it work.
 
  ### ChangeLog
+ v1.3 <br>
+ Add accept raw image type
+ 
   v1.2 <br>
  Add SetLoadingImage Sprite type
 
@@ -10,9 +13,6 @@
 
  v1.0 <br>
  Original repository from original author
-
- ### TO DO
- Image to accept raw image type
 
 Original Repository https://github.com/shamsdev/davinci
 Davinci

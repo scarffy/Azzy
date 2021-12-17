@@ -10,8 +10,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Azzy - Based on a powerful, esay-to-use image downloading and caching library for Unity in Run-Time with blackjack and Davinci
-/// v 1.2 
-/// TODO - v 1.3 - rawImage
+// v 1.3
 /// Developed by ShamsDEV.com
 /// copyright (c) ShamsDEV.com All Rights Reserved.
 /// Licensed under the MIT License.
